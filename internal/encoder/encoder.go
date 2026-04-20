@@ -42,14 +42,3 @@ func commandExists(name string) bool {
 	_, err := exec.LookPath(name)
 	return err == nil
 }
-
-// Stubs — implemented in avif.go
-type AvifencEncoder struct{}
-
-func (AvifencEncoder) Name() string                        { return "avifenc" }
-func (AvifencEncoder) Encode(src, dst string, q int) error { return nil }
-
-type MagickAvifEncoder struct{}
-
-func (MagickAvifEncoder) Name() string                        { return "magick (avif)" }
-func (MagickAvifEncoder) Encode(src, dst string, q int) error { return nil }

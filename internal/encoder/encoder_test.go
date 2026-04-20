@@ -83,6 +83,50 @@ func TestMagickWebpEncode(t *testing.T) {
 	}
 }
 
+func TestAvifencEncode(t *testing.T) {
+	if _, err := exec.LookPath("avifenc"); err != nil {
+		t.Skip("avifenc not installed")
+	}
+
+	src := createTestPNG(t)
+	dst := filepath.Join(t.TempDir(), "out.avif")
+
+	enc := encoder.AvifencEncoder{}
+	if err := enc.Encode(src, dst, -1); err != nil {
+		t.Fatalf("encode failed: %v", err)
+	}
+
+	info, err := os.Stat(dst)
+	if err != nil {
+		t.Fatalf("output file not created: %v", err)
+	}
+	if info.Size() == 0 {
+		t.Error("output file is empty")
+	}
+}
+
+func TestMagickAvifEncode(t *testing.T) {
+	if _, err := exec.LookPath("magick"); err != nil {
+		t.Skip("magick not installed")
+	}
+
+	src := createTestPNG(t)
+	dst := filepath.Join(t.TempDir(), "out.avif")
+
+	enc := encoder.MagickAvifEncoder{}
+	if err := enc.Encode(src, dst, -1); err != nil {
+		t.Fatalf("encode failed: %v", err)
+	}
+
+	info, err := os.Stat(dst)
+	if err != nil {
+		t.Fatalf("output file not created: %v", err)
+	}
+	if info.Size() == 0 {
+		t.Error("output file is empty")
+	}
+}
+
 // createTestPNG creates a minimal valid PNG file and returns its path.
 func createTestPNG(t *testing.T) string {
 	t.Helper()
