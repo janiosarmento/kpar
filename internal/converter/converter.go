@@ -24,12 +24,14 @@ type Result struct {
 	OriginalPath string
 	OriginalSize int64
 	Conversions  []Conversion
-	BestPath     string // path to the best converted file, or "" if no gain
-	Saved        int64  // bytes saved (0 if no gain)
+	BestPath        string // path to the best converted file, or "" if no gain
+	Saved           int64  // bytes saved (0 if no gain)
+	OriginalDeleted bool
 }
 
 // Convert processes a single image file according to its type.
-func Convert(src string, reg encoder.Registry, quality int) (Result, error) {
+// If keepOriginal is false, the original file is deleted when a smaller conversion is found.
+func Convert(src string, reg encoder.Registry, quality int, keepOriginal bool) (Result, error) {
 	info, err := os.Stat(src)
 	if err != nil {
 		return Result{}, fmt.Errorf("stat %s: %w", src, err)
@@ -57,6 +59,12 @@ func Convert(src string, reg encoder.Registry, quality int) (Result, error) {
 	}
 
 	pickBest(&result)
+
+	if result.Saved > 0 && !keepOriginal {
+		os.Remove(src)
+		result.OriginalDeleted = true
+	}
+
 	return result, nil
 }
 

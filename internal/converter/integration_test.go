@@ -18,7 +18,7 @@ func TestIntegrationPNGProducesSmaller(t *testing.T) {
 	dir := t.TempDir()
 	src := createTestImage(t, dir, "large.png")
 
-	result, err := converter.Convert(src, registry, -1)
+	result, err := converter.Convert(src, registry, -1, true)
 	if err != nil {
 		t.Fatalf("convert failed: %v", err)
 	}
@@ -47,6 +47,30 @@ func TestIntegrationPNGProducesSmaller(t *testing.T) {
 	}
 }
 
+func TestIntegrationDeletesOriginal(t *testing.T) {
+	registry := encoder.Detect()
+	if registry.WebpEncoder == nil || registry.AvifEncoder == nil {
+		t.Skip("need both webp and avif encoders")
+	}
+
+	dir := t.TempDir()
+	src := createTestImage(t, dir, "delete_me.png")
+
+	result, err := converter.Convert(src, registry, -1, false)
+	if err != nil {
+		t.Fatalf("convert failed: %v", err)
+	}
+
+	if result.Saved > 0 {
+		if _, err := os.Stat(src); err == nil {
+			t.Error("original file should have been deleted")
+		}
+		if !result.OriginalDeleted {
+			t.Error("OriginalDeleted should be true")
+		}
+	}
+}
+
 func TestIntegrationWEBPToAVIF(t *testing.T) {
 	registry := encoder.Detect()
 	if registry.WebpEncoder == nil || registry.AvifEncoder == nil {
@@ -63,7 +87,7 @@ func TestIntegrationWEBPToAVIF(t *testing.T) {
 	}
 	os.Remove(pngSrc) // clean up PNG
 
-	result, err := converter.Convert(webpPath, registry, -1)
+	result, err := converter.Convert(webpPath, registry, -1, true)
 	if err != nil {
 		t.Fatalf("convert failed: %v", err)
 	}

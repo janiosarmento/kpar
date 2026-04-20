@@ -14,7 +14,10 @@ import (
 	"github.com/janiosarmento/kpar/internal/scanner"
 )
 
-var quality int
+var (
+	quality      int
+	keepOriginal bool
+)
 
 var rootCmd = &cobra.Command{
 	Use:   "kpar [file]",
@@ -26,6 +29,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.Flags().IntVarP(&quality, "quality", "q", -1, "Encoding quality (0-100, default: encoder default)")
+	rootCmd.Flags().BoolVarP(&keepOriginal, "keep", "k", false, "Keep original file after optimization")
 }
 
 func main() {
@@ -81,7 +85,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Convert
-	result, err := converter.Convert(filePath, registry, quality)
+	result, err := converter.Convert(filePath, registry, quality, keepOriginal)
 	if err != nil {
 		return err
 	}

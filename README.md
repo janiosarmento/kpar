@@ -7,9 +7,11 @@ The name is a corruption of the Portuguese word "capar" (to cut, to trim).
 ## How it works
 
 - **WEBP input** → converts to AVIF; keeps it only if smaller than the original
-- **JPG/PNG input** → converts to both WEBP and AVIF; keeps only the smallest (original is always preserved)
+- **JPG/PNG input** → converts to both WEBP and AVIF; keeps only the smallest
 
-If no conversion produces a smaller file, nothing is saved.
+When a smaller conversion is found, the original file is **deleted** by default. Use `--keep` to preserve it.
+
+If no conversion produces a smaller file, nothing changes.
 
 ## Usage
 
@@ -22,6 +24,9 @@ kpar
 
 # Set encoding quality (0-100)
 kpar --quality 80 photo.png
+
+# Keep original file after optimization
+kpar --keep photo.jpg
 ```
 
 ## Requirements

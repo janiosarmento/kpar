@@ -55,7 +55,12 @@ func Render(r converter.Result) string {
 
 	if r.Saved > 0 {
 		savings := fmt.Sprintf("ganho: %s economizados", FormatSize(r.Saved))
-		fmt.Fprintf(&b, "  └─ %s\n", green.Render(savings))
+		fmt.Fprintf(&b, "  ├─ %s\n", green.Render(savings))
+		if r.OriginalDeleted {
+			fmt.Fprintf(&b, "  └─ %s\n", gray.Render("original apagado"))
+		} else {
+			fmt.Fprintf(&b, "  └─ %s\n", gray.Render("original mantido"))
+		}
 	} else {
 		fmt.Fprintf(&b, "  └─ %s\n", gray.Render("sem ganho"))
 	}
