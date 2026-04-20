@@ -43,17 +43,7 @@ func commandExists(name string) bool {
 	return err == nil
 }
 
-// Stubs — implemented in webp.go and avif.go
-type CwebpEncoder struct{}
-
-func (CwebpEncoder) Name() string                        { return "cwebp" }
-func (CwebpEncoder) Encode(src, dst string, q int) error { return nil }
-
-type MagickWebpEncoder struct{}
-
-func (MagickWebpEncoder) Name() string                        { return "magick (webp)" }
-func (MagickWebpEncoder) Encode(src, dst string, q int) error { return nil }
-
+// Stubs — implemented in avif.go
 type AvifencEncoder struct{}
 
 func (AvifencEncoder) Name() string                        { return "avifenc" }
