@@ -41,7 +41,7 @@ func TestConvertPNG(t *testing.T) {
 	dir := t.TempDir()
 	src := createTestImage(t, dir, "test.png")
 
-	result, err := converter.Convert(src, registry, -1, true)
+	result, err := converter.Convert(src, registry, -1, true, false, false)
 	if err != nil {
 		t.Fatalf("convert failed: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestConvertWEBP(t *testing.T) {
 		t.Fatalf("setup: creating webp: %v", err)
 	}
 
-	result, err := converter.Convert(webpPath, registry, -1, true)
+	result, err := converter.Convert(webpPath, registry, -1, true, false, false)
 	if err != nil {
 		t.Fatalf("convert failed: %v", err)
 	}

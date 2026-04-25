@@ -18,7 +18,7 @@ func TestIntegrationPNGProducesSmaller(t *testing.T) {
 	dir := t.TempDir()
 	src := createTestImage(t, dir, "large.png")
 
-	result, err := converter.Convert(src, registry, -1, true)
+	result, err := converter.Convert(src, registry, -1, true, false, false)
 	if err != nil {
 		t.Fatalf("convert failed: %v", err)
 	}
@@ -56,7 +56,7 @@ func TestIntegrationDeletesOriginal(t *testing.T) {
 	dir := t.TempDir()
 	src := createTestImage(t, dir, "delete_me.png")
 
-	result, err := converter.Convert(src, registry, -1, false)
+	result, err := converter.Convert(src, registry, -1, false, false, false)
 	if err != nil {
 		t.Fatalf("convert failed: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestIntegrationWEBPToAVIF(t *testing.T) {
 	}
 	os.Remove(pngSrc) // clean up PNG
 
-	result, err := converter.Convert(webpPath, registry, -1, true)
+	result, err := converter.Convert(webpPath, registry, -1, true, false, false)
 	if err != nil {
 		t.Fatalf("convert failed: %v", err)
 	}

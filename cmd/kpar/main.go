@@ -14,22 +14,35 @@ import (
 	"github.com/janiosarmento/kpar/internal/scanner"
 )
 
+// version is set at build time via:
+//
+//	go build -ldflags "-X main.version=1.2.3"
+var version = "dev"
+
 var (
 	quality      int
 	keepOriginal bool
+	blur         bool
+	crop         bool
+	original     bool
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "kpar [file]",
-	Short: "Image optimizer — converts to WEBP/AVIF and keeps the smallest",
-	Long:  "KPAR converts images between modern formats (WEBP, AVIF) and keeps only the smallest result.",
-	Args:  cobra.MaximumNArgs(1),
-	RunE:  run,
+	Use:     "kpar [file...]",
+	Short:   "Image optimizer — converts to WEBP/AVIF and keeps the smallest",
+	Long:    "KPAR converts images between modern formats (WEBP, AVIF) and keeps only the smallest result.\nAccepts multiple files: kpar *.png, kpar gato-*, kpar Downloads/*.jpg",
+	Version: version,
+	RunE:    run,
 }
 
 func init() {
 	rootCmd.Flags().IntVarP(&quality, "quality", "q", -1, "Encoding quality (0-100, default: encoder default)")
 	rootCmd.Flags().BoolVarP(&keepOriginal, "keep", "k", false, "Keep original file after optimization")
+	rootCmd.Flags().BoolVarP(&blur, "blur", "b", false, "Remove Gemini sparkle watermark via blur")
+	rootCmd.Flags().BoolVarP(&crop, "crop", "c", false, "Force crop 160px from the right edge")
+	rootCmd.Flags().BoolVarP(&original, "original", "o", false, "No filters — only resize and convert")
+	rootCmd.Flags().BoolP("version", "v", false, "Print version and exit")
+	rootCmd.Flags().Lookup("version").Hidden = true // evita duplicata no --help; --version já é gerado pelo Cobra
 }
 
 func main() {
@@ -39,7 +52,10 @@ func main() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	// Detect encoders
+	if original && (blur || crop) {
+		return fmt.Errorf("ei, você pediu para não fazer nada E para fazer algo ao mesmo tempo. Escolhe um lado!")
+	}
+
 	registry := encoder.Detect()
 	reportEncoders(registry)
 
@@ -51,47 +67,65 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no encoders available")
 	}
 
-	var filePath string
+	var files []string
 
-	if len(args) == 1 {
-		// Direct file mode
-		abs, err := filepath.Abs(args[0])
-		if err != nil {
-			return err
+	if len(args) > 0 {
+		for _, arg := range args {
+			abs, err := filepath.Abs(arg)
+			if err != nil {
+				return err
+			}
+			files = append(files, abs)
 		}
-		filePath = abs
 	} else {
-		// Picker mode
 		dir, err := os.Getwd()
 		if err != nil {
 			return err
 		}
 
-		files, err := scanner.Scan(dir)
+		scanned, err := scanner.Scan(dir)
 		if err != nil {
 			return err
 		}
 
-		if len(files) == 0 {
+		if len(scanned) == 0 {
 			fmt.Println("No image files found in current directory.")
 			return nil
 		}
 
-		selected, err := picker.Pick(files)
+		selected, err := picker.Pick(scanned)
 		if err != nil {
 			return err
 		}
-		filePath = selected
+		files = []string{selected}
 	}
 
-	// Convert
-	result, err := converter.Convert(filePath, registry, quality, keepOriginal)
-	if err != nil {
-		return err
+	var hasError bool
+	for _, filePath := range files {
+		cropRight := false
+		if !original {
+			if crop {
+				cropRight = true
+			} else {
+				gemini, err := converter.IsGeminiImage(filePath)
+				if err == nil && gemini {
+					cropRight = true
+				}
+			}
+		}
+
+		result, err := converter.Convert(filePath, registry, quality, keepOriginal, blur && !original, cropRight)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s: %v\n", filepath.Base(filePath), err)
+			hasError = true
+			continue
+		}
+		fmt.Print(output.Render(result))
 	}
 
-	// Output
-	fmt.Print(output.Render(result))
+	if hasError {
+		return fmt.Errorf("some files failed")
+	}
 	return nil
 }
 

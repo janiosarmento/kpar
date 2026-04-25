@@ -31,10 +31,34 @@ type Result struct {
 
 // Convert processes a single image file according to its type.
 // If keepOriginal is false, the original file is deleted when a smaller conversion is found.
-func Convert(src string, reg encoder.Registry, quality int, keepOriginal bool) (Result, error) {
+// If removeWM is true, the Gemini sparkle watermark is removed before encoding.
+// If cropRight is true, 160px are cropped from the right edge before processing.
+func Convert(src string, reg encoder.Registry, quality int, keepOriginal, removeWM, cropRight bool) (Result, error) {
 	info, err := os.Stat(src)
 	if err != nil {
 		return Result{}, fmt.Errorf("stat %s: %w", src, err)
+	}
+
+	encodeSrc := src
+
+	// Crop 160px from the right edge
+	if cropRight {
+		cropped, cleanup, err := cropRightEdge(src, 160)
+		if err != nil {
+			return Result{}, fmt.Errorf("crop: %w", err)
+		}
+		defer cleanup()
+		encodeSrc = cropped
+	}
+
+	// Remove watermark
+	if removeWM {
+		patched, cleanup, err := removeWatermark(encodeSrc)
+		if err != nil {
+			return Result{}, fmt.Errorf("watermark removal: %w", err)
+		}
+		defer cleanup()
+		encodeSrc = patched
 	}
 
 	result := Result{
@@ -47,9 +71,9 @@ func Convert(src string, reg encoder.Registry, quality int, keepOriginal bool) (
 
 	switch ext {
 	case ".webp":
-		err = convertWebp(base, src, reg, quality, &result)
+		err = convertWebp(base, encodeSrc, reg, quality, &result)
 	case ".jpg", ".jpeg", ".png":
-		err = convertJpgPng(base, src, reg, quality, &result)
+		err = convertJpgPng(base, encodeSrc, reg, quality, &result)
 	default:
 		return result, fmt.Errorf("unsupported format: %s", ext)
 	}
@@ -81,8 +105,15 @@ func convertWebp(base, src string, reg encoder.Registry, quality int, result *Re
 		return fmt.Errorf("decoding webp to png: %w", err)
 	}
 
+	// Resize if wider than 1440px
+	encodeSrc, cleanup, err := resizeIfNeeded(tmpPNG)
+	if err != nil {
+		return fmt.Errorf("resize: %w", err)
+	}
+	defer cleanup()
+
 	dst := base + ".avif"
-	if err := reg.AvifEncoder.Encode(tmpPNG, dst, quality); err != nil {
+	if err := reg.AvifEncoder.Encode(encodeSrc, dst, quality); err != nil {
 		return err
 	}
 
@@ -120,9 +151,16 @@ func webpToPNG(src, dst string) error {
 }
 
 func convertJpgPng(base, src string, reg encoder.Registry, quality int, result *Result) error {
+	// Resize if wider than 1440px
+	encodeSrc, cleanup, err := resizeIfNeeded(src)
+	if err != nil {
+		return fmt.Errorf("resize: %w", err)
+	}
+	defer cleanup()
+
 	if reg.WebpEncoder != nil {
 		dst := base + ".webp"
-		if err := reg.WebpEncoder.Encode(src, dst, quality); err != nil {
+		if err := reg.WebpEncoder.Encode(encodeSrc, dst, quality); err != nil {
 			return err
 		}
 		info, err := os.Stat(dst)
@@ -139,7 +177,7 @@ func convertJpgPng(base, src string, reg encoder.Registry, quality int, result *
 
 	if reg.AvifEncoder != nil {
 		dst := base + ".avif"
-		if err := reg.AvifEncoder.Encode(src, dst, quality); err != nil {
+		if err := reg.AvifEncoder.Encode(encodeSrc, dst, quality); err != nil {
 			return err
 		}
 		info, err := os.Stat(dst)
