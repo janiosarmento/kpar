@@ -27,7 +27,7 @@ type MagickAvifEncoder struct{}
 func (MagickAvifEncoder) Name() string { return "magick (avif)" }
 
 func (MagickAvifEncoder) Encode(src, dst string, quality int) error {
-	args := []string{"convert", src}
+	args := []string{"convert", src, "-strip"}
 	if quality >= 0 {
 		args = append(args, "-quality", fmt.Sprintf("%d", quality))
 	}

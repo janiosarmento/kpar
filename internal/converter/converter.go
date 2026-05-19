@@ -41,9 +41,9 @@ func Convert(src string, reg encoder.Registry, quality int, keepOriginal, remove
 
 	encodeSrc := src
 
-	// Crop 160px from the right edge
+	// Crop 160px from each side
 	if cropRight {
-		cropped, cleanup, err := cropRightEdge(src, 160)
+		cropped, cleanup, err := cropSides(src, 160)
 		if err != nil {
 			return Result{}, fmt.Errorf("crop: %w", err)
 		}

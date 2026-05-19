@@ -45,9 +45,9 @@ func imageWidth(path string) (int, error) {
 	return cfg.Width, nil
 }
 
-// cropRightEdge removes pixels from the right edge of an image.
+// cropSides removes pixels from both the left and right edges of an image.
 // Returns the path to the cropped file and a cleanup function.
-func cropRightEdge(src string, pixels int) (string, func(), error) {
+func cropSides(src string, pixels int) (string, func(), error) {
 	noop := func() {}
 
 	w, err := imageWidth(src)
@@ -55,7 +55,7 @@ func cropRightEdge(src string, pixels int) (string, func(), error) {
 		return "", noop, err
 	}
 
-	if w <= pixels {
+	if w <= pixels*2 {
 		return src, noop, nil
 	}
 
@@ -63,8 +63,8 @@ func cropRightEdge(src string, pixels int) (string, func(), error) {
 	base := filepath.Base(src)
 	tmp := filepath.Join(dir, "__cropped_"+base)
 
-	newWidth := w - pixels
-	crop := fmt.Sprintf("%dx+0+0", newWidth)
+	newWidth := w - pixels*2
+	crop := fmt.Sprintf("%dx+%d+0", newWidth, pixels)
 	cmd := exec.Command("magick", src, "-crop", crop, "+repage", tmp)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return "", noop, fmt.Errorf("magick crop: %w\n%s", err, out)

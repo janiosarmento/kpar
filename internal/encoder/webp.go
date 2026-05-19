@@ -10,7 +10,7 @@ type CwebpEncoder struct{}
 func (CwebpEncoder) Name() string { return "cwebp" }
 
 func (CwebpEncoder) Encode(src, dst string, quality int) error {
-	args := []string{src, "-o", dst}
+	args := []string{"-metadata", "none", src, "-o", dst}
 	if quality >= 0 {
 		args = append([]string{"-q", fmt.Sprintf("%d", quality)}, args...)
 	}
@@ -26,7 +26,7 @@ type MagickWebpEncoder struct{}
 func (MagickWebpEncoder) Name() string { return "magick (webp)" }
 
 func (MagickWebpEncoder) Encode(src, dst string, quality int) error {
-	args := []string{"convert", src}
+	args := []string{"convert", src, "-strip"}
 	if quality >= 0 {
 		args = append(args, "-quality", fmt.Sprintf("%d", quality))
 	}
