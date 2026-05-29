@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/png"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -82,5 +83,48 @@ func TestConvertWEBP(t *testing.T) {
 		if c.Format == "webp" {
 			t.Error("WEBP input should not convert to WEBP")
 		}
+	}
+}
+
+func createTestHEIC(t *testing.T, dir, name string) string {
+	t.Helper()
+	pngPath := createTestImage(t, dir, "temp.png")
+	defer os.Remove(pngPath)
+
+	heicPath := filepath.Join(dir, name)
+
+	if _, err := exec.LookPath("magick"); err == nil {
+		cmd := exec.Command("magick", pngPath, heicPath)
+		if err := cmd.Run(); err == nil {
+			return heicPath
+		}
+	}
+
+	t.Skip("magick not available or failed to generate test HEIC")
+	return ""
+}
+
+func TestConvertHEIC(t *testing.T) {
+	registry := encoder.Detect()
+	if registry.WebpEncoder == nil || registry.AvifEncoder == nil {
+		t.Skip("need both webp and avif encoders")
+	}
+
+	dir := t.TempDir()
+	src := createTestHEIC(t, dir, "test.heic")
+
+	result, err := converter.Convert(src, registry, -1, true, false, false)
+	if err != nil {
+		t.Fatalf("convert failed: %v", err)
+	}
+
+	if result.OriginalPath != src {
+		t.Errorf("OriginalPath = %q, want %q", result.OriginalPath, src)
+	}
+	if result.OriginalSize <= 0 {
+		t.Error("OriginalSize should be > 0")
+	}
+	if len(result.Conversions) == 0 {
+		t.Error("expected at least one conversion attempt")
 	}
 }

@@ -7,7 +7,7 @@ The name is a corruption of the Portuguese word "capar" (to cut, to trim).
 ## How it works
 
 - **WEBP input** → converts to AVIF; keeps it only if smaller than the original
-- **JPG/PNG input** → converts to both WEBP and AVIF; keeps only the smallest
+- **JPG/PNG/HEIC input** → converts to both WEBP and AVIF; keeps only the smallest
 
 When a smaller conversion is found, the original file is **deleted** by default. Use `--keep` to preserve it.
 
@@ -40,6 +40,9 @@ At least one of the following must be installed:
 | `magick` (ImageMagick 7+) | `brew install imagemagick` | `apt install imagemagick` |
 
 Dedicated encoders (`cwebp`, `avifenc`) are preferred when available. ImageMagick is used as a fallback.
+
+### HEIC/HEIF support
+To convert HEIC/HEIF images, you need either `heif-convert` (part of `libheif`) or `magick` (ImageMagick) installed with HEIC support. On macOS, ImageMagick installed via Homebrew includes HEIC support by default.
 
 ## Install
 

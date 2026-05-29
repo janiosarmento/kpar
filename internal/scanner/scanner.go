@@ -12,6 +12,8 @@ var imageExtensions = map[string]bool{
 	".jpeg": true,
 	".png":  true,
 	".webp": true,
+	".heic": true,
+	".heif": true,
 }
 
 // Scan returns sorted absolute paths of image files in dir.

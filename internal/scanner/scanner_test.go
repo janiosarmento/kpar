@@ -12,7 +12,7 @@ func TestScanFindsImages(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create test files
-	files := []string{"photo.jpg", "image.jpeg", "pic.png", "banner.webp", "readme.txt", "data.csv"}
+	files := []string{"photo.jpg", "image.jpeg", "pic.png", "banner.webp", "apple.heic", "orange.heif", "readme.txt", "data.csv"}
 	for _, f := range files {
 		os.WriteFile(filepath.Join(dir, f), []byte("fake"), 0644)
 	}
@@ -22,7 +22,7 @@ func TestScanFindsImages(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	expected := []string{"banner.webp", "image.jpeg", "photo.jpg", "pic.png"}
+	expected := []string{"apple.heic", "banner.webp", "image.jpeg", "orange.heif", "photo.jpg", "pic.png"}
 	if len(result) != len(expected) {
 		t.Fatalf("got %d files, want %d: %v", len(result), len(expected), result)
 	}

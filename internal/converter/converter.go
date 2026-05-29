@@ -74,6 +74,8 @@ func Convert(src string, reg encoder.Registry, quality int, keepOriginal, remove
 		err = convertWebp(base, encodeSrc, reg, quality, &result)
 	case ".jpg", ".jpeg", ".png":
 		err = convertJpgPng(base, encodeSrc, reg, quality, &result)
+	case ".heic", ".heif":
+		err = convertHeic(base, encodeSrc, reg, quality, &result)
 	default:
 		return result, fmt.Errorf("unsupported format: %s", ext)
 	}
@@ -148,6 +150,36 @@ func webpToPNG(src, dst string) error {
 		return nil
 	}
 	return fmt.Errorf("no tool available to decode WEBP (need dwebp or magick)")
+}
+
+func convertHeic(base, src string, reg encoder.Registry, quality int, result *Result) error {
+	tmpPNG := base + "__tmp.png"
+	defer os.Remove(tmpPNG)
+
+	if err := heicToPNG(src, tmpPNG); err != nil {
+		return fmt.Errorf("decoding heic to png: %w", err)
+	}
+
+	return convertJpgPng(base, tmpPNG, reg, quality, result)
+}
+
+// heicToPNG decodes a HEIC/HEIF file to PNG using heif-convert (preferred) or magick.
+func heicToPNG(src, dst string) error {
+	if _, err := exec.LookPath("heif-convert"); err == nil {
+		cmd := exec.Command("heif-convert", src, dst)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("heif-convert: %w\n%s", err, out)
+		}
+		return nil
+	}
+	if _, err := exec.LookPath("magick"); err == nil {
+		cmd := exec.Command("magick", "convert", src, dst)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("magick: %w\n%s", err, out)
+		}
+		return nil
+	}
+	return fmt.Errorf("no tool available to decode HEIC/HEIF (need heif-convert or magick)")
 }
 
 func convertJpgPng(base, src string, reg encoder.Registry, quality int, result *Result) error {
