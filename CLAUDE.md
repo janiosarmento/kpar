@@ -2,11 +2,14 @@
 
 ## Build e instalação
 
-Sempre que compilar/instalar o programa, incremente a versão em `-ldflags`:
+Sempre que compilar/instalar o programa, use `make install`. Esse alvo faz o
+build e o deploy (`cp` para `~/.local/bin/kpar`) num único passo atômico, e
+incrementa sozinho o patch da versão em `VERSION`. **Nunca** rode
+`go install`/`go build` isolado para instalar — isso deixa `~/go/bin/kpar` e
+`~/.local/bin/kpar` dessincronizados, como já aconteceu antes.
 
 ```sh
-go install -ldflags "-X main.version=X.Y.Z" ./cmd/kpar
-/bin/cp -f ~/go/bin/kpar ~/.local/bin/kpar
+make install
 ```
 
 A variável `version` fica em `cmd/kpar/main.go` e o padrão é `"dev"` quando não injetada.
