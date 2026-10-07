@@ -42,7 +42,7 @@ func TestConvertPNG(t *testing.T) {
 	dir := t.TempDir()
 	src := createTestImage(t, dir, "test.png")
 
-	result, err := converter.Convert(src, registry, -1, true, false, false)
+	result, err := converter.Convert(src, registry, -1, converter.DefaultMaxWidth, true, false, false)
 	if err != nil {
 		t.Fatalf("convert failed: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestConvertWEBP(t *testing.T) {
 		t.Fatalf("setup: creating webp: %v", err)
 	}
 
-	result, err := converter.Convert(webpPath, registry, -1, true, false, false)
+	result, err := converter.Convert(webpPath, registry, -1, converter.DefaultMaxWidth, true, false, false)
 	if err != nil {
 		t.Fatalf("convert failed: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestConvertHEIC(t *testing.T) {
 	dir := t.TempDir()
 	src := createTestHEIC(t, dir, "test.heic")
 
-	result, err := converter.Convert(src, registry, -1, true, false, false)
+	result, err := converter.Convert(src, registry, -1, converter.DefaultMaxWidth, true, false, false)
 	if err != nil {
 		t.Fatalf("convert failed: %v", err)
 	}

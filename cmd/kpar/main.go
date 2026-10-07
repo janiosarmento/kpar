@@ -21,10 +21,12 @@ var version = "dev"
 
 var (
 	quality      int
+	width        int
 	keepOriginal bool
 	blur         bool
 	crop         bool
 	original     bool
+	webpOnly     bool
 )
 
 var rootCmd = &cobra.Command{
@@ -37,10 +39,12 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.Flags().IntVarP(&quality, "quality", "q", -1, "Encoding quality (0-100, default: encoder default)")
+	rootCmd.Flags().IntVarP(&width, "width", "w", converter.DefaultMaxWidth, "Maximum image width in pixels")
 	rootCmd.Flags().BoolVarP(&keepOriginal, "keep", "k", false, "Keep original file after optimization")
 	rootCmd.Flags().BoolVarP(&blur, "blur", "b", false, "Remove Gemini sparkle watermark via blur")
 	rootCmd.Flags().BoolVarP(&crop, "crop", "c", false, "Force crop 160px from the right edge")
 	rootCmd.Flags().BoolVarP(&original, "original", "o", false, "No filters — only resize and convert")
+	rootCmd.Flags().BoolVar(&webpOnly, "webp", false, "Force WEBP output — never try AVIF")
 	rootCmd.Flags().BoolP("version", "v", false, "Print version and exit")
 	rootCmd.Flags().Lookup("version").Hidden = true // evita duplicata no --help; --version já é gerado pelo Cobra
 }
@@ -56,7 +60,17 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("ei, você pediu para não fazer nada E para fazer algo ao mesmo tempo. Escolhe um lado!")
 	}
 
+	if width <= 0 {
+		return fmt.Errorf("--width must be greater than zero")
+	}
+
 	registry := encoder.Detect()
+	if webpOnly {
+		if registry.WebpEncoder == nil {
+			return fmt.Errorf("--webp requires a WEBP encoder (brew install webp, or ImageMagick 7+)")
+		}
+		registry.AvifEncoder = nil
+	}
 	reportEncoders(registry)
 
 	if registry.WebpEncoder == nil && registry.AvifEncoder == nil {
@@ -114,7 +128,7 @@ func run(cmd *cobra.Command, args []string) error {
 			}
 		}
 
-		result, err := converter.Convert(filePath, registry, quality, keepOriginal, blur && !original, cropRight)
+		result, err := converter.Convert(filePath, registry, quality, width, keepOriginal, blur && !original, cropRight)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s: %v\n", filepath.Base(filePath), err)
 			hasError = true

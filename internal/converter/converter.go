@@ -21,9 +21,9 @@ type Conversion struct {
 
 // Result holds the full result of processing one image.
 type Result struct {
-	OriginalPath string
-	OriginalSize int64
-	Conversions  []Conversion
+	OriginalPath    string
+	OriginalSize    int64
+	Conversions     []Conversion
 	BestPath        string // path to the best converted file, or "" if no gain
 	Saved           int64  // bytes saved (0 if no gain)
 	OriginalDeleted bool
@@ -32,8 +32,9 @@ type Result struct {
 // Convert processes a single image file according to its type.
 // If keepOriginal is false, the original file is deleted when a smaller conversion is found.
 // If removeWM is true, the Gemini sparkle watermark is removed before encoding.
+// Images wider than maxWidth are resized down to it.
 // If cropRight is true, 160px are cropped from the right edge before processing.
-func Convert(src string, reg encoder.Registry, quality int, keepOriginal, removeWM, cropRight bool) (Result, error) {
+func Convert(src string, reg encoder.Registry, quality, maxWidth int, keepOriginal, removeWM, cropRight bool) (Result, error) {
 	info, err := os.Stat(src)
 	if err != nil {
 		return Result{}, fmt.Errorf("stat %s: %w", src, err)
@@ -71,11 +72,11 @@ func Convert(src string, reg encoder.Registry, quality int, keepOriginal, remove
 
 	switch ext {
 	case ".webp":
-		err = convertWebp(base, encodeSrc, reg, quality, &result)
+		err = convertWebp(base, encodeSrc, reg, quality, maxWidth, &result)
 	case ".jpg", ".jpeg", ".png":
-		err = convertJpgPng(base, encodeSrc, reg, quality, &result)
+		err = convertJpgPng(base, encodeSrc, reg, quality, maxWidth, &result)
 	case ".heic", ".heif":
-		err = convertHeic(base, encodeSrc, reg, quality, &result)
+		err = convertHeic(base, encodeSrc, reg, quality, maxWidth, &result)
 	default:
 		return result, fmt.Errorf("unsupported format: %s", ext)
 	}
@@ -94,9 +95,9 @@ func Convert(src string, reg encoder.Registry, quality int, keepOriginal, remove
 	return result, nil
 }
 
-func convertWebp(base, src string, reg encoder.Registry, quality int, result *Result) error {
+func convertWebp(base, src string, reg encoder.Registry, quality, maxWidth int, result *Result) error {
 	if reg.AvifEncoder == nil {
-		return fmt.Errorf("no AVIF encoder available")
+		return fmt.Errorf("WEBP input can only be converted to AVIF, but no AVIF encoder is enabled")
 	}
 
 	// avifenc does not support WEBP input directly; decode to a temp PNG first.
@@ -107,8 +108,8 @@ func convertWebp(base, src string, reg encoder.Registry, quality int, result *Re
 		return fmt.Errorf("decoding webp to png: %w", err)
 	}
 
-	// Resize if wider than 1440px
-	encodeSrc, cleanup, err := resizeIfNeeded(tmpPNG)
+	// Resize if wider than maxWidth
+	encodeSrc, cleanup, err := resizeIfNeeded(tmpPNG, maxWidth)
 	if err != nil {
 		return fmt.Errorf("resize: %w", err)
 	}
@@ -152,7 +153,7 @@ func webpToPNG(src, dst string) error {
 	return fmt.Errorf("no tool available to decode WEBP (need dwebp or magick)")
 }
 
-func convertHeic(base, src string, reg encoder.Registry, quality int, result *Result) error {
+func convertHeic(base, src string, reg encoder.Registry, quality, maxWidth int, result *Result) error {
 	tmpPNG := base + "__tmp.png"
 	defer os.Remove(tmpPNG)
 
@@ -160,7 +161,7 @@ func convertHeic(base, src string, reg encoder.Registry, quality int, result *Re
 		return fmt.Errorf("decoding heic to png: %w", err)
 	}
 
-	return convertJpgPng(base, tmpPNG, reg, quality, result)
+	return convertJpgPng(base, tmpPNG, reg, quality, maxWidth, result)
 }
 
 // heicToPNG decodes a HEIC/HEIF file to PNG using heif-convert (preferred) or magick.
@@ -182,9 +183,9 @@ func heicToPNG(src, dst string) error {
 	return fmt.Errorf("no tool available to decode HEIC/HEIF (need heif-convert or magick)")
 }
 
-func convertJpgPng(base, src string, reg encoder.Registry, quality int, result *Result) error {
-	// Resize if wider than 1440px
-	encodeSrc, cleanup, err := resizeIfNeeded(src)
+func convertJpgPng(base, src string, reg encoder.Registry, quality, maxWidth int, result *Result) error {
+	// Resize if wider than maxWidth
+	encodeSrc, cleanup, err := resizeIfNeeded(src, maxWidth)
 	if err != nil {
 		return fmt.Errorf("resize: %w", err)
 	}

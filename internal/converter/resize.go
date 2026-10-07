@@ -12,7 +12,8 @@ import (
 	"path/filepath"
 )
 
-const maxWidth = 1440
+// DefaultMaxWidth is the maximum image width used when none is specified.
+const DefaultMaxWidth = 1440
 
 // IsGeminiImage reports whether the file contains a Google C2PA provenance
 // certificate, which Gemini embeds in all AI-generated images.
@@ -77,7 +78,7 @@ func cropSides(src string, pixels int) (string, func(), error) {
 // resizeIfNeeded checks if the image is wider than maxWidth and, if so,
 // resizes it to a temporary file. Returns the path to use for encoding
 // (original or resized) and a cleanup function.
-func resizeIfNeeded(src string) (string, func(), error) {
+func resizeIfNeeded(src string, maxWidth int) (string, func(), error) {
 	noop := func() {}
 
 	w, err := imageWidth(src)
