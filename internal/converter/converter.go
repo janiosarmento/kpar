@@ -68,15 +68,18 @@ func Convert(src string, reg encoder.Registry, quality, maxWidth int, keepOrigin
 	}
 
 	ext := strings.ToLower(filepath.Ext(src))
+	// base is the source path without extension; temp files are derived from it.
 	base := strings.TrimSuffix(src, filepath.Ext(src))
+	// outBase is the permalink-style name the converted files are saved under.
+	outBase := filepath.Join(filepath.Dir(src), permalink(filepath.Base(base)))
 
 	switch ext {
 	case ".webp":
-		err = convertWebp(base, encodeSrc, reg, quality, maxWidth, &result)
+		err = convertWebp(base, outBase, encodeSrc, reg, quality, maxWidth, &result)
 	case ".jpg", ".jpeg", ".png":
-		err = convertJpgPng(base, encodeSrc, reg, quality, maxWidth, &result)
+		err = convertJpgPng(outBase, encodeSrc, reg, quality, maxWidth, &result)
 	case ".heic", ".heif":
-		err = convertHeic(base, encodeSrc, reg, quality, maxWidth, &result)
+		err = convertHeic(base, outBase, encodeSrc, reg, quality, maxWidth, &result)
 	default:
 		return result, fmt.Errorf("unsupported format: %s", ext)
 	}
@@ -95,7 +98,7 @@ func Convert(src string, reg encoder.Registry, quality, maxWidth int, keepOrigin
 	return result, nil
 }
 
-func convertWebp(base, src string, reg encoder.Registry, quality, maxWidth int, result *Result) error {
+func convertWebp(base, outBase, src string, reg encoder.Registry, quality, maxWidth int, result *Result) error {
 	if reg.AvifEncoder == nil {
 		return fmt.Errorf("WEBP input can only be converted to AVIF, but no AVIF encoder is enabled")
 	}
@@ -115,7 +118,7 @@ func convertWebp(base, src string, reg encoder.Registry, quality, maxWidth int, 
 	}
 	defer cleanup()
 
-	dst := base + ".avif"
+	dst := uniquePath(outBase, "avif")
 	if err := reg.AvifEncoder.Encode(encodeSrc, dst, quality); err != nil {
 		return err
 	}
@@ -153,7 +156,7 @@ func webpToPNG(src, dst string) error {
 	return fmt.Errorf("no tool available to decode WEBP (need dwebp or magick)")
 }
 
-func convertHeic(base, src string, reg encoder.Registry, quality, maxWidth int, result *Result) error {
+func convertHeic(base, outBase, src string, reg encoder.Registry, quality, maxWidth int, result *Result) error {
 	tmpPNG := base + "__tmp.png"
 	defer os.Remove(tmpPNG)
 
@@ -161,7 +164,7 @@ func convertHeic(base, src string, reg encoder.Registry, quality, maxWidth int, 
 		return fmt.Errorf("decoding heic to png: %w", err)
 	}
 
-	return convertJpgPng(base, tmpPNG, reg, quality, maxWidth, result)
+	return convertJpgPng(outBase, tmpPNG, reg, quality, maxWidth, result)
 }
 
 // heicToPNG decodes a HEIC/HEIF file to PNG using heif-convert (preferred) or magick.
@@ -183,7 +186,7 @@ func heicToPNG(src, dst string) error {
 	return fmt.Errorf("no tool available to decode HEIC/HEIF (need heif-convert or magick)")
 }
 
-func convertJpgPng(base, src string, reg encoder.Registry, quality, maxWidth int, result *Result) error {
+func convertJpgPng(outBase, src string, reg encoder.Registry, quality, maxWidth int, result *Result) error {
 	// Resize if wider than maxWidth
 	encodeSrc, cleanup, err := resizeIfNeeded(src, maxWidth)
 	if err != nil {
@@ -192,7 +195,7 @@ func convertJpgPng(base, src string, reg encoder.Registry, quality, maxWidth int
 	defer cleanup()
 
 	if reg.WebpEncoder != nil {
-		dst := base + ".webp"
+		dst := uniquePath(outBase, "webp")
 		if err := reg.WebpEncoder.Encode(encodeSrc, dst, quality); err != nil {
 			return err
 		}
@@ -209,7 +212,7 @@ func convertJpgPng(base, src string, reg encoder.Registry, quality, maxWidth int
 	}
 
 	if reg.AvifEncoder != nil {
-		dst := base + ".avif"
+		dst := uniquePath(outBase, "avif")
 		if err := reg.AvifEncoder.Encode(encodeSrc, dst, quality); err != nil {
 			return err
 		}

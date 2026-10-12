@@ -13,6 +13,8 @@ When a smaller conversion is found, the original file is **deleted** by default.
 
 If no conversion produces a smaller file, nothing changes.
 
+Converted files are saved with a permalink-style name: lowercase, accents removed, spaces and symbols replaced by hyphens. For example, `Foto Linda Do Coração.png` becomes `foto-linda-do-coracao.avif`. If that name is already taken, a `-2`, `-3`, ... suffix is added so existing files are never overwritten.
+
 ## Usage
 
 ```bash
